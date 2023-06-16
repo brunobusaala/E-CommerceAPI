@@ -93,7 +93,7 @@ namespace CrudeApi.Controllers
             {
                 context.Product.Remove(pizza);
                 await context.SaveChangesAsync();
-                return Ok($"{pizza.Name} was deleted succesfully!");
+                return Ok($" The {pizza.Name} was deleted succesfully!");
             }
             return Ok();
         }
