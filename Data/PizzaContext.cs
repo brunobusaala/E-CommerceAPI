@@ -1,4 +1,5 @@
 ﻿using CrudeApi.Models.DomainModels;
+using CrudeApi.Models.ShoppingCartModels;
 using Microsoft.EntityFrameworkCore;
 
 namespace CrudeApi.Data
@@ -11,5 +12,6 @@ namespace CrudeApi.Data
 
         }
         public DbSet<Pizza> Product { get; set; }
+        public DbSet<CartItem> ShoppingCartItems { get; set; }
     }
 }

@@ -9,6 +9,14 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.Cookie.Name="PizzaCartCookie";
+    options.IdleTimeout=TimeSpan.FromMinutes(5);
+    options.Cookie.IsEssential=true;
+});
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContextPool<PizzaContext>(opt =>
 {
@@ -32,7 +40,7 @@ if ( app.Environment.IsDevelopment() )
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+app.UseSession();
 app.UseHttpsRedirection();
 app.UseCors();
 app.UseAuthorization();

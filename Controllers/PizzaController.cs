@@ -1,4 +1,5 @@
 ﻿using CrudeApi.Data;
+using CrudeApi.Logic;
 using CrudeApi.Models.DomainModels;
 using CrudeApi.Models.RequestModels;
 using Microsoft.AspNetCore.Cors;
@@ -13,10 +14,13 @@ namespace CrudeApi.Controllers
     public class PizzaController : ControllerBase
     {
         private readonly PizzaContext context;
+        private readonly IHttpContextAccessor httpContextAccessor;
+        private readonly ShoppingCartActions _shoppingCartActions;
 
-        public PizzaController(PizzaContext context)
+        public PizzaController(PizzaContext context, IHttpContextAccessor httpContextAccessor)
         {
             this.context=context;
+            _shoppingCartActions=new ShoppingCartActions(context, httpContextAccessor);
         }
         [HttpGet]
         public async Task<IActionResult> AllPizza()
@@ -96,6 +100,18 @@ namespace CrudeApi.Controllers
                 return Ok($"{pizza.Name} was deleted succesfully!");
             }
             return Ok();
+        }
+        [HttpPost("addtocart{ProductId}")]
+        public IActionResult AddToCart(Guid ProductId)
+        {
+            _shoppingCartActions.AddToCart(ProductId);
+            return Ok();
+        }
+        [HttpGet("allcartitems")]
+        public IActionResult GetCartItems()
+        {
+            var cartItems = _shoppingCartActions.GetCartItems().ToList();
+            return Ok(cartItems);
         }
 
     }
