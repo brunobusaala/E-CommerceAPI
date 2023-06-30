@@ -1,33 +1,41 @@
-﻿using CrudeApi.Data;
+﻿using AutoMapper;
+using CrudeApi.Data;
+using CrudeApi.DTO;
 using CrudeApi.Models.DomainModels;
 using CrudeApi.Models.RequestModels;
-using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CrudeApi.Controllers
 {
-    [EnableCors]
+
+    [Authorize(AuthenticationSchemes = "Bearer")]
     [ApiController]
     [Route("Api/[controller]")]
     public class PizzaController : ControllerBase
     {
-        private readonly PizzaContext context;
+        private readonly PizzaContext _context;
+        private readonly IMapper _mapper;
 
-        public PizzaController(PizzaContext context)
+        public PizzaController(PizzaContext context, IMapper mapper)
         {
-            this.context=context;
+            _context=context;
+            _mapper=mapper;
         }
+
         [HttpGet]
-        public async Task<IActionResult> AllPizza()
+        [Route("AllPizza")]
+        public IActionResult AllPizza()
         {
-            return Ok(await context.Product.ToListAsync());
+            var pizzas = _context.Products.ToList();
+            var pizzaDto = _mapper.Map<IEnumerable<PizzaDto>>(pizzas);
+            return Ok(pizzaDto);
         }
 
-        [HttpGet("GetAPizza{Id}")]
+        [HttpGet("GetAPizza/{Id}")]
         public async Task<IActionResult> GetAPizza(Guid Id)
         {
-            var pizza = await context.Product.FindAsync(Id);
+            var pizza = await _context.Products.FindAsync(Id);
             if ( pizza==null )
             {
                 return NotFound("The pizza is not currently in Stock!");
@@ -53,15 +61,15 @@ namespace CrudeApi.Controllers
                 Name=addPizza.Name,
                 Price=addPizza.Price
             };
-            await context.Product.AddAsync(pizza);
-            await context.SaveChangesAsync();
+            await _context.Products.AddAsync(pizza);
+            await _context.SaveChangesAsync();
             return Ok($"{pizza.Name} was added successfully!");
         }
 
-        [HttpPut("EditPizza{id}")]
+        [HttpPut("EditPizza/{id}")]
         public async Task<IActionResult> EditPizza(Guid id, EditPizza edit)
         {
-            var pizza = await context.Product.FindAsync(id);
+            var pizza = await _context.Products.FindAsync(id);
             if ( pizza==null )
             {
                 return NotFound("The pizza you are trying to edit is currently not in the system!");
@@ -75,28 +83,31 @@ namespace CrudeApi.Controllers
                 pizza.Name=edit.Name;
                 pizza.ImageName=edit.ImageName;
 
-                await context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
                 return Ok($"{pizza.Name} was edited succesfully!");
             }
             return Ok();
 
         }
-        [HttpDelete("DeletePizza{Id}")]
+        [Authorize]
+        [HttpDelete("DeletePizza/{Id}")]
         public async Task<IActionResult> DeletePizza(Guid Id)
         {
-            var pizza = await context.Product.FindAsync(Id);
+            var pizza = await _context.Products.FindAsync(Id);
             if ( pizza==null )
             {
                 return NotFound($"The pizza is not currently in the Database!");
             }
             else if ( pizza!=null )
             {
-                context.Product.Remove(pizza);
-                await context.SaveChangesAsync();
-                return Ok($" The {pizza.Name} was deleted succesfully!");
+                _context.Products.Remove(pizza);
+                await _context.SaveChangesAsync();
+                return Ok($"{pizza.Name} was deleted succesfully!");
+
             }
             return Ok();
         }
+
 
     }
 }
