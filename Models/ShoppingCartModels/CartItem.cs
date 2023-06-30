@@ -1,20 +1,27 @@
 ﻿using CrudeApi.Models.DomainModels;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CrudeApi.Models.ShoppingCartModels
 {
     public class CartItem
     {
         [Key]
-        public string ItemId { get; set; }
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int ItemId { get; set; }
 
-        //The id for the user that is making a purchase
-        //We will add a code to create this userId when the user accesses the shopping cart
-        //The Id will be stored as a ASP.Net Session variable
-        public string CartId { get; set; }
+        //Foreign Key
+        public int CartId { get; set; }
+
         public int Quantity { get; set; }
         public DateTime DateCreated { get; set; }
         public Guid ProductId { get; set; }
-        public virtual Pizza Pizza { get; set; }
+        public virtual Pizza? Pizza { get; set; }
+
+        // Navigation property for the User
+        public UsersModel? UsersModel { get; set; } // navigation property
+
+        // Collection navigation property for CartItems
+        public Cart Cart { get; set; }
     }
 }
