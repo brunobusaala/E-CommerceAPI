@@ -28,6 +28,31 @@ namespace CrudeApi.Controllers
             _logger=logger;
         }
 
+        [HttpGet("GetUserName")]
+        public async Task<IActionResult> GetUserName()
+        {
+            if ( User.Identity.IsAuthenticated )
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var user = await _userManager.FindByIdAsync(userId);
+
+                if ( user!=null )
+                {
+                    var userName = user.UserName;
+                    return Ok(userName);
+                }
+                else
+                {
+                    return Ok("Sign In");
+                }
+            }
+            else
+            {
+                return Ok("Sign In");
+            }
+        }
+
+
 
         [HttpPost("AddItemToCart/{productId}")]
         public async Task<IActionResult> AddToCart([FromRoute] Guid productId)
@@ -68,7 +93,9 @@ namespace CrudeApi.Controllers
                     Quantity=1,
                     DateCreated=DateTime.Now,
                     CartId=cart.CartId // Associate the cart item with the cart
+
                 };
+
                 cart.CartItems.Add(cartItem); // Add the cart item to the cart's collection
                 await _context.CartItems.AddAsync(cartItem);
             }
@@ -76,7 +103,11 @@ namespace CrudeApi.Controllers
             {
                 // Increment the quantity of the cart item
                 cartItem.Quantity++;
+
             }
+
+            //Calculate and set the cost
+            cartItem.Cost=cartItem.Quantity*cartItem.Pizza?.Price??8;
 
             await _context.SaveChangesAsync();
             return Ok("Item successfully added to the cart!");
@@ -111,12 +142,44 @@ namespace CrudeApi.Controllers
             return Content(json, "application/json");
         }
 
-        [HttpDelete("delete/{userId}/{productId}")]
-        public async Task<IActionResult> DeleteCartItem(int userId, Guid productId)
+        [HttpGet]
+        [Route("CalculateCartCalculations")]
+        public async Task<IActionResult> CalculateCartCost()
         {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if ( string.IsNullOrEmpty(userId) )
+            {
+                return BadRequest("User not found");
+            }
+
             var cart = await _context.Carts
                 .Include(c => c.CartItems)
-                .FirstOrDefaultAsync(c => c.UserId==userId);
+                .ThenInclude(ci => ci.Pizza)
+                .FirstOrDefaultAsync(c => c.UserId.ToString()==userId);
+
+            if ( cart==null )
+            {
+                return BadRequest("Cart not found");
+            }
+            decimal totalCost = 0;
+            foreach ( var cartItem in cart.CartItems )
+            {
+                //Calculate the cost of each cart item
+                cartItem.Cost=cartItem.Quantity*cartItem.Pizza.Price;
+                totalCost+=cartItem.Cost;
+
+            }
+            await _context.SaveChangesAsync();
+            return Ok(new { TotalCost = totalCost/*, CartItems = cart.CartItems */});
+        }
+
+        [HttpDelete("delete/{productId}")]
+        public async Task<IActionResult> DeleteCartItem(Guid productId)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var cart = await _context.Carts
+                .Include(c => c.CartItems)
+                .FirstOrDefaultAsync(c => c.UserId.ToString()==userId);
 
             if ( cart!=null )
             {
@@ -130,6 +193,26 @@ namespace CrudeApi.Controllers
             }
 
             return NotFound($"The item with ProductId: {productId} is not in the user's cart!");
+        }
+
+        [HttpDelete]
+        [Route("ClearCart")]
+        public async Task<IActionResult> ClearCart()
+        {
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var cart = await _context.Carts
+                .Include(c => c.CartItems)
+                .FirstOrDefaultAsync(c => c.UserId.ToString()==userId);
+
+            if ( cart!=null )
+            {
+                _context.CartItems.RemoveRange(cart.CartItems);
+                await _context.SaveChangesAsync();
+                return Ok("Cart successfully cleared!");
+            }
+
+            return NotFound($"The user with ID: {userId} does not have a cart!");
         }
     }
 }

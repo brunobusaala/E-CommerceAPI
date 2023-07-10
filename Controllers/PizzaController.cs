@@ -4,23 +4,26 @@ using CrudeApi.DTO;
 using CrudeApi.Models.DomainModels;
 using CrudeApi.Models.RequestModels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CrudeApi.Controllers
 {
 
-    [Authorize(AuthenticationSchemes = "Bearer")]
+    //[Authorize(AuthenticationSchemes = "Bearer")]
     [ApiController]
     [Route("Api/[controller]")]
     public class PizzaController : ControllerBase
     {
         private readonly PizzaContext _context;
         private readonly IMapper _mapper;
+        private readonly UserManager<UsersModel> _userManager;
 
-        public PizzaController(PizzaContext context, IMapper mapper)
+        public PizzaController(PizzaContext context, IMapper mapper, UserManager<UsersModel> userManager)
         {
             _context=context;
             _mapper=mapper;
+            _userManager=userManager;
         }
 
         [HttpGet]
