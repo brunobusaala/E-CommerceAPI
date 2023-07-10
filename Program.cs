@@ -55,6 +55,8 @@ builder.Services.AddCors(options =>
             policy.WithOrigins("http://localhost:3000",
                                 "http://www.contoso.com")
             .AllowAnyHeader()
+            .AllowAnyOrigin()
+            .AllowAnyMethod()
             .WithExposedHeaders("Authorization");
 
         });
@@ -71,9 +73,9 @@ if ( app.Environment.IsDevelopment() )
 }
 
 app.UseHttpsRedirection();
-
-app.UseAuthentication();
 app.UseCors();
+app.UseAuthentication();
+
 app.UseAuthorization();
 app.MapControllers();
 app.Run();

@@ -38,7 +38,7 @@ namespace CrudeApi.Controllers
                 {
                     var claims = new[]
                     {
-                        new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString(), ClaimValueTypes.Integer),
+                        new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString(), ClaimValueTypes.Integer, user.Email),
                         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                         new Claim(JwtRegisteredClaimNames.Iat, DateTime.UtcNow.ToString()),
                         new Claim("UserName", user.UserName),
@@ -106,6 +106,10 @@ namespace CrudeApi.Controllers
             {
                 return BadRequest();
             }
+
+
         }
+
+
     }
 }

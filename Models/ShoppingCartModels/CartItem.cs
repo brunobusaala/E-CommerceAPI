@@ -14,9 +14,15 @@ namespace CrudeApi.Models.ShoppingCartModels
         public int CartId { get; set; }
 
         public int Quantity { get; set; }
+
         public DateTime DateCreated { get; set; }
+
         public Guid ProductId { get; set; }
+
+        public decimal Cost { get; set; }//Added cost property
+
         public virtual Pizza? Pizza { get; set; }
+
 
         // Navigation property for the User
         public UsersModel? UsersModel { get; set; } // navigation property
