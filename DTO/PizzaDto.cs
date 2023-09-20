@@ -3,6 +3,7 @@
     public class PizzaDto
     {
         public Guid Id { get; set; }
+
         public string? SizeID { get; set; }
 
         public string? Name { get; set; }
