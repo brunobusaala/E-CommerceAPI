@@ -173,6 +173,41 @@ namespace CrudeApi.Controllers
             return Ok(new { TotalCost = totalCost/*, CartItems = cart.CartItems */});
         }
 
+        [HttpGet("ItemTotal/{itemId}")]
+        public async Task<IActionResult> CalculateItemTotal(int itemId)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest("User not found");
+            }
+
+            var cart = await _context.Carts
+                .Include(c => c.CartItems)
+                .ThenInclude(ci => ci.Pizza)
+                .FirstOrDefaultAsync(c => c.UserId.ToString() == userId);
+
+            if (cart == null)
+            {
+                return BadRequest("Cart not found");
+            }
+
+            var cartItem = cart.CartItems.FirstOrDefault(ci => ci.CartId == itemId);
+
+            if (cartItem == null)
+            {
+                return BadRequest("Item not found in the cart");
+            }
+
+            // Calculate the cost of the specified cart item
+            cartItem.Cost = cartItem.Quantity * cartItem.Pizza.Price;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { TotalCost = cartItem.Cost });
+        }
+
+
         [HttpDelete("delete/{productId}")]
         public async Task<IActionResult> DeleteCartItem(Guid productId)
         {
