@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,29 +12,44 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddAuthorization();
 
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = "localhost:6379";
+});
+
+builder.Host.UseSerilog((context, configuration) =>
+configuration.ReadFrom.Configuration(context.Configuration));
+
 builder.Services.AddIdentity<UsersModel, IdentityRole<int>>()
     .AddEntityFrameworkStores<PizzaContext>()
     .AddDefaultTokenProviders();
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+builder.Services.AddAuthentication(options =>
 {
-    options.RequireHttpsMetadata=false;
-    options.SaveToken=true;
-    options.TokenValidationParameters=new TokenValidationParameters()
-    {
-        ValidateIssuer=true,
-        ValidateAudience=true,
-        ValidAudience=builder.Configuration["Jwt:Audience"],
-        ValidIssuer=builder.Configuration["Jwt:Issuer"],
-        IssuerSigningKey=new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
-    };
-});
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+
+    .AddJwtBearer(options =>
+        {
+            options.RequireHttpsMetadata = false;
+            options.SaveToken = true;
+            options.TokenValidationParameters = new TokenValidationParameters()
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidAudience = builder.Configuration["Jwt:Audience"],
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            };
+        });
 
 
 builder.Services.AddScoped<UserManager<UsersModel>>();
-builder.Services.AddControllers();
-// Register the UserManager
 
+builder.Services.AddControllers();
+
+builder.Services.AddMemoryCache();
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -66,16 +82,15 @@ var app = builder.Build();
 
 
 
-if ( app.Environment.IsDevelopment() )
+if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+app.UseSerilogRequestLogging();
 app.UseHttpsRedirection();
 app.UseCors();
 app.UseAuthentication();
-
 app.UseAuthorization();
 app.MapControllers();
 app.Run();

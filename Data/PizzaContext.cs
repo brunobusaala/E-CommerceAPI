@@ -23,7 +23,6 @@ namespace CrudeApi.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configure the relationships between the entities
             modelBuilder.Entity<UsersModel>()
                 .HasOne(u => u.Cart)
                 .WithOne(c => c.UsersModel)

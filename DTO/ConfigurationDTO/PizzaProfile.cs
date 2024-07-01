@@ -27,12 +27,6 @@ namespace CrudeApi.DTO.ConfigurationDTO
 
             .ForMember(dest => dest.ImageName,
             opt => opt.MapFrom(src => $"{src.ImageName}"));
-
-            //.ForMember(
-            //    dest => dest.FullName,
-            //    opt => opt.MapFrom(src => $"{src.FirstName} {src.LastName}")
-            //)
-
         }
     }
 }
