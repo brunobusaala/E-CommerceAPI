@@ -1,5 +1,6 @@
 ﻿using CrudeApi.Models.DomainModels;
 using CrudeApi.Models.LoginModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -21,20 +22,20 @@ namespace CrudeApi.Controllers
 
         public TokenController(IConfiguration configuration, UserManager<UsersModel> userManager, SignInManager<UsersModel> signInManager, ILogger<TokenController> logger)
         {
-            _configuration=configuration;
-            _userManager=userManager;
-            _signInManager=signInManager;
-            _logger=logger;
+            _configuration = configuration;
+            _userManager = userManager;
+            _signInManager = signInManager;
+            _logger = logger;
         }
 
         [HttpPost]
         [Route("Login")]
         public async Task<IActionResult> Post(Login _userData)
         {
-            if ( _userData!=null&&!string.IsNullOrEmpty(_userData.UserName)&&!string.IsNullOrEmpty(_userData.Password) )
+            if (_userData != null && !string.IsNullOrEmpty(_userData.UserName) && !string.IsNullOrEmpty(_userData.Password))
             {
                 var user = await _userManager.FindByNameAsync(_userData.UserName);
-                if ( user!=null&&await _userManager.CheckPasswordAsync(user, _userData.Password) )
+                if (user != null && await _userManager.CheckPasswordAsync(user, _userData.Password))
                 {
                     var claims = new[]
                     {
@@ -54,7 +55,7 @@ namespace CrudeApi.Controllers
                         _configuration["Jwt:Issuer"],
                         _configuration["Jwt:Audience"],
                         claims,
-                        expires: DateTime.UtcNow.AddMinutes(60),
+                        expires: DateTime.UtcNow.AddMinutes(1440),
                         signingCredentials: signIn
                     );
 
@@ -72,26 +73,42 @@ namespace CrudeApi.Controllers
             }
         }
 
+        [Authorize]
+        [HttpGet]
+        [Route("GetUserMetaData")]
+        public async Task<IActionResult> GetUserMetaData()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user != null)
+            {
+                return Ok(new
+                {
+                    user.UserName,
+                    user.Email
+                });
+            }
+            return BadRequest();
+        }
 
         [HttpPost]
         [Route("Register")]
         public async Task<IActionResult> Post(Register _userData)
         {
-            if ( _userData!=null&&!string.IsNullOrEmpty(_userData.UserName)&&!string.IsNullOrEmpty(_userData.Password) )
+            if (_userData != null && !string.IsNullOrEmpty(_userData.UserName) && !string.IsNullOrEmpty(_userData.Password))
             {
                 var user = new UsersModel
                 {
-                    UserName=_userData.UserName,
-                    Email=_userData.Email,
-                    DateCreated=DateTime.UtcNow,
-                    DateUpdated=DateTime.UtcNow
+                    UserName = _userData.UserName,
+                    Email = _userData.Email,
+                    DateCreated = DateTime.UtcNow,
+                    DateUpdated = DateTime.UtcNow
 
                     // Add any additional properties you have in your UsersModel
                 };
 
                 var result = await _userManager.CreateAsync(user, _userData.Password);
 
-                if ( result.Succeeded )
+                if (result.Succeeded)
                 {
                     // User registration successful
                     return Ok();

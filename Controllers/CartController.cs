@@ -192,7 +192,7 @@ namespace CrudeApi.Controllers
                 return BadRequest("Cart not found");
             }
 
-            var cartItem = cart.CartItems.FirstOrDefault(ci => ci.CartId == itemId);
+            var cartItem = cart.CartItems.FirstOrDefault(ci => ci.ItemId == itemId);
 
             if (cartItem == null)
             {

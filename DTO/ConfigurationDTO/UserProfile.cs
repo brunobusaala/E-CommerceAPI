@@ -8,7 +8,6 @@ namespace CrudeApi.DTO.ConfigurationDTO
         public UserProfile()
         {
             CreateMap<UsersDto, UsersModel>();
-
         }
     }
 }
