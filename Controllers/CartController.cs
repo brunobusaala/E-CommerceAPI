@@ -11,9 +11,9 @@ using System.Text.Json.Serialization;
 
 namespace CrudeApi.Controllers
 {
-    [Authorize(AuthenticationSchemes = "Bearer")]
     [ApiController]
     [Route("Api/[controller]")]
+    [Authorize]
     public class CartController : ControllerBase
     {
         private readonly PizzaContext _context;
@@ -24,20 +24,20 @@ namespace CrudeApi.Controllers
 
         public CartController(PizzaContext dbContext, UserManager<UsersModel> userManager, ILogger<CartController> logger)
         {
-            _context=dbContext;
-            _userManager=userManager;
-            _logger=logger;
+            _context = dbContext;
+            _userManager = userManager;
+            _logger = logger;
         }
 
         [HttpGet("GetUserName")]
         public async Task<IActionResult> GetUserName()
         {
-            if ( User.Identity.IsAuthenticated )
+            if (User.Identity.IsAuthenticated)
             {
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var user = await _userManager.FindByIdAsync(userId);
 
-                if ( user!=null )
+                if (user != null)
                 {
                     var userName = user.UserName;
                     return Ok(userName);
@@ -66,38 +66,38 @@ namespace CrudeApi.Controllers
 
             var user = await _userManager.FindByIdAsync(userId);
 
-            if ( user==null )
+            if (user == null)
             {
                 return BadRequest("User not found");
             }
 
             var cart = await _context.Carts
                 .Include(c => c.CartItems)
-                .FirstOrDefaultAsync(c => c.UserId==user.Id);
+                .FirstOrDefaultAsync(c => c.UserId == user.Id);
 
-            if ( cart==null )
+            if (cart == null)
             {
-                cart=new Cart { UserId=user.Id, CartItems=new List<CartItem>() };
+                cart = new Cart { UserId = user.Id, CartItems = new List<CartItem>() };
                 _context.Carts.Add(cart);
             }
 
-            var cartItem = cart.CartItems.FirstOrDefault(c => c.ProductId==productId);
+            var cartItem = cart.CartItems.FirstOrDefault(c => c.ProductId == productId);
 
-            if ( cartItem==null )
+            if (cartItem == null)
             {
-                var product = _context.Products.SingleOrDefault(p => p.Id==productId);
+                var product = _context.Products.SingleOrDefault(p => p.Id == productId);
 
-                cartItem=new CartItem
+                cartItem = new CartItem
                 {
-                    ProductId=productId,
-                    Pizza=product,
-                    Quantity=1,
-                    DateCreated=DateTime.Now,
-                    CartId=cart.CartId 
+                    ProductId = productId,
+                    Pizza = product,
+                    Quantity = 1,
+                    DateCreated = DateTime.Now,
+                    CartId = cart.CartId
 
                 };
 
-                cart.CartItems.Add(cartItem); 
+                cart.CartItems.Add(cartItem);
 
                 await _context.CartItems.AddAsync(cartItem);
             }
@@ -106,7 +106,7 @@ namespace CrudeApi.Controllers
                 cartItem.Quantity++;
             }
 
-            cartItem.Cost=cartItem.Quantity*cartItem.Pizza?.Price??8;
+            cartItem.Cost = cartItem.Quantity * cartItem.Pizza?.Price ?? 8;
 
             await _context.SaveChangesAsync();
 
@@ -119,18 +119,18 @@ namespace CrudeApi.Controllers
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             _logger.LogInformation($"User ID: {userId}");
-            if ( userId==null )
+            if (userId == null)
             {
                 return BadRequest("User not found");
             }
             var cart = await _context.Carts
                 .Include(c => c.CartItems)
                     .ThenInclude(ci => ci.Pizza)
-                .FirstOrDefaultAsync(c => c.UserId.ToString()==userId);
+                .FirstOrDefaultAsync(c => c.UserId.ToString() == userId);
 
             JsonSerializerOptions options = new JsonSerializerOptions
             {
-                ReferenceHandler=ReferenceHandler.Preserve,
+                ReferenceHandler = ReferenceHandler.Preserve,
             };
 
             string json = JsonSerializer.Serialize(cart, options);
@@ -144,7 +144,7 @@ namespace CrudeApi.Controllers
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            if ( string.IsNullOrEmpty(userId) )
+            if (string.IsNullOrEmpty(userId))
             {
                 return BadRequest("User not found");
             }
@@ -152,22 +152,22 @@ namespace CrudeApi.Controllers
             var cart = await _context.Carts
                 .Include(c => c.CartItems)
                 .ThenInclude(ci => ci.Pizza)
-                .FirstOrDefaultAsync(c => c.UserId.ToString()==userId);
+                .FirstOrDefaultAsync(c => c.UserId.ToString() == userId);
 
-            if ( cart==null )
+            if (cart == null)
             {
                 return BadRequest("Cart not found");
             }
             decimal totalCost = 0;
-            foreach ( var cartItem in cart.CartItems )
+            foreach (var cartItem in cart.CartItems)
             {
-                cartItem.Cost=cartItem.Quantity*cartItem.Pizza.Price;
+                cartItem.Cost = cartItem.Quantity * cartItem.Pizza.Price;
 
-                totalCost+=cartItem.Cost;
+                totalCost += cartItem.Cost;
 
             }
             await _context.SaveChangesAsync();
-            return Ok(new { TotalCost = totalCost});
+            return Ok(new { TotalCost = totalCost });
         }
 
         [HttpGet("ItemTotal/{itemId}")]
@@ -210,12 +210,12 @@ namespace CrudeApi.Controllers
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var cart = await _context.Carts
                 .Include(c => c.CartItems)
-                .FirstOrDefaultAsync(c => c.UserId.ToString()==userId);
+                .FirstOrDefaultAsync(c => c.UserId.ToString() == userId);
 
-            if ( cart!=null )
+            if (cart != null)
             {
-                var cartItem = cart.CartItems.FirstOrDefault(c => c.ProductId==productId);
-                if ( cartItem!=null )
+                var cartItem = cart.CartItems.FirstOrDefault(c => c.ProductId == productId);
+                if (cartItem != null)
                 {
                     _context.CartItems.Remove(cartItem);
                     await _context.SaveChangesAsync();
@@ -235,9 +235,9 @@ namespace CrudeApi.Controllers
 
             var cart = await _context.Carts
                 .Include(c => c.CartItems)
-                .FirstOrDefaultAsync(c => c.UserId.ToString()==userId);
+                .FirstOrDefaultAsync(c => c.UserId.ToString() == userId);
 
-            if ( cart!=null )
+            if (cart != null)
             {
                 _context.CartItems.RemoveRange(cart.CartItems);
                 await _context.SaveChangesAsync();

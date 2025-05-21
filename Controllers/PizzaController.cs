@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+﻿using System.Text;
 using CrudeApi.Data;
 using CrudeApi.DTO;
 using CrudeApi.Models.DomainModels;
@@ -9,17 +9,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
-using System.Text;
 
 namespace CrudeApi.Controllers
 {
-
     [ApiController]
     [Route("Api/[controller]")]
     public class PizzaController : ControllerBase
     {
         private readonly PizzaContext _context;
-        private readonly IMapper _mapper;
         private readonly UserManager<UsersModel> _userManager;
         private readonly ILogger<PizzaController> _logger;
         private readonly IMemoryCache _memoryCache;
@@ -27,41 +24,17 @@ namespace CrudeApi.Controllers
 
         public PizzaController(
             PizzaContext context,
-            IMapper mapper,
             UserManager<UsersModel> userManager,
             ILogger<PizzaController> logger,
             IDistributedCache distributedCache,
-            IMemoryCache memoryCache)
+            IMemoryCache memoryCache
+        )
         {
             _context = context;
-            _mapper = mapper;
             _userManager = userManager;
             _logger = logger;
             _memoryCache = memoryCache;
             _distributedCache = distributedCache;
-        }
-
-
-        [HttpGet("Serilog")]
-        public async Task<IActionResult> FetchNumbers()
-        {
-            _logger.LogInformation("Requested the Serilog Api");
-
-            var number = 4;
-            try
-            {
-                if (number == 4)
-                {
-                    throw new Exception("RandomException");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Exception caught");
-            }
-
-
-            return Ok();
         }
 
         [HttpGet("redis")]
@@ -84,8 +57,10 @@ namespace CrudeApi.Controllers
                 serializedPizzaList = Encoding.UTF8.GetString(redisCustomerList);
                 pizzaList = JsonConvert.DeserializeObject<List<Pizza>>(serializedPizzaList);
                 var endTime = DateTime.Now;
-                _logger.Log(LogLevel.Warning, $"list with redis retrieved in {(endTime - startTime).TotalMilliseconds}");
-
+                _logger.Log(
+                    LogLevel.Warning,
+                    $"list with redis retrieved in {(endTime - startTime).TotalMilliseconds}"
+                );
             }
             else
             {
@@ -97,7 +72,10 @@ namespace CrudeApi.Controllers
                     .SetSlidingExpiration(TimeSpan.FromSeconds(10));
                 await _distributedCache.SetAsync(cacheKey, redisCustomerList, options);
                 var endTime = DateTime.Now;
-                _logger.Log(LogLevel.Warning, $"list without redis retrieved in {(endTime - startTime).TotalMilliseconds}");
+                _logger.Log(
+                    LogLevel.Warning,
+                    $"list without redis retrieved in {(endTime - startTime).TotalMilliseconds}"
+                );
             }
             return Ok(serializedPizzaList);
         }
@@ -113,22 +91,40 @@ namespace CrudeApi.Controllers
                 {
                     AbsoluteExpiration = DateTime.Now.AddSeconds(30),
                     Priority = CacheItemPriority.High,
-                    SlidingExpiration = TimeSpan.FromSeconds(10)
-
+                    SlidingExpiration = TimeSpan.FromSeconds(10),
                 };
                 _memoryCache.Set(cacheKey, pizzaList, cacheExpiryOptions);
             }
             return Ok(pizzaList);
         }
 
-
         [HttpGet]
         [Route("AllPizza")]
         public IActionResult AllPizza()
         {
             var pizzas = _context.Products.ToList();
-            var pizzaDto = _mapper.Map<IEnumerable<PizzaDto>>(pizzas);
-            return Ok(pizzaDto);
+
+            if (pizzas == null)
+            {
+                return NotFound("There are no pizzas in the database!");
+            }
+            else if (pizzas != null)
+            {
+                var pizzaDto = pizzas
+                    .Select(p => new PizzaDto
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        Description = p.Description,
+                        Price = p.Price,
+                        SizeID = p.SizeID,
+                        ImageName = p.ImageName,
+                    })
+                    .ToList();
+
+                return Ok(pizzaDto);
+            }
+            return Ok();
         }
 
         [HttpGet("GetAPizza/{Id}")]
@@ -148,6 +144,7 @@ namespace CrudeApi.Controllers
 
         [HttpPost]
         [Route("AddPizza")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AddNewPizza(AddPizza addPizza)
         {
             var pizza = new Pizza()
@@ -158,7 +155,7 @@ namespace CrudeApi.Controllers
                 SizeID = addPizza.SizeID,
                 ImageName = addPizza.ImageName,
                 Name = addPizza.Name,
-                Price = addPizza.Price
+                Price = addPizza.Price,
             };
             await _context.Products.AddAsync(pizza);
             await _context.SaveChangesAsync();
@@ -166,6 +163,7 @@ namespace CrudeApi.Controllers
         }
 
         [HttpPut("EditPizza/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> EditPizza(Guid id, EditPizza edit)
         {
             var pizza = await _context.Products.FindAsync(id);
@@ -186,9 +184,9 @@ namespace CrudeApi.Controllers
                 return Ok($"{pizza.Name} was edited succesfully!");
             }
             return Ok();
-
         }
-        [Authorize]
+
+        [Authorize(Roles = "Admin")]
         [HttpDelete("DeletePizza/{Id}")]
         public async Task<IActionResult> DeletePizza(Guid Id)
         {
@@ -202,7 +200,6 @@ namespace CrudeApi.Controllers
                 _context.Products.Remove(pizza);
                 await _context.SaveChangesAsync();
                 return Ok($"{pizza.Name} was deleted succesfully!");
-
             }
             return Ok();
         }
