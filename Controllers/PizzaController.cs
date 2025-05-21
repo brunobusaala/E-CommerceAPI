@@ -14,7 +14,6 @@ using System.Text;
 namespace CrudeApi.Controllers
 {
 
-    //[Authorize(AuthenticationSchemes = "Bearer")]
     [ApiController]
     [Route("Api/[controller]")]
     public class PizzaController : ControllerBase
@@ -22,31 +21,31 @@ namespace CrudeApi.Controllers
         private readonly PizzaContext _context;
         private readonly IMapper _mapper;
         private readonly UserManager<UsersModel> _userManager;
-        private readonly ILogger<PizzaController> logger;
-        private readonly IMemoryCache memoryCache;
-        private readonly IDistributedCache distributedCache;
+        private readonly ILogger<PizzaController> _logger;
+        private readonly IMemoryCache _memoryCache;
+        private readonly IDistributedCache _distributedCache;
 
         public PizzaController(
             PizzaContext context,
             IMapper mapper,
             UserManager<UsersModel> userManager,
             ILogger<PizzaController> logger,
-            IDistributedCache distributedCach0e,
+            IDistributedCache distributedCache,
             IMemoryCache memoryCache)
         {
             _context = context;
             _mapper = mapper;
             _userManager = userManager;
-            this.logger = logger;
-            this.memoryCache = memoryCache;
-            this.distributedCache = distributedCache;
+            _logger = logger;
+            _memoryCache = memoryCache;
+            _distributedCache = distributedCache;
         }
 
 
         [HttpGet("Serilog")]
         public async Task<IActionResult> FetchNumbers()
         {
-            logger.LogInformation("Requested the Serilog Api");
+            _logger.LogInformation("Requested the Serilog Api");
 
             var number = 4;
             try
@@ -58,14 +57,12 @@ namespace CrudeApi.Controllers
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Exception caught");
+                _logger.LogError(ex, "Exception caught");
             }
 
 
             return Ok();
         }
-
-
 
         [HttpGet("redis")]
         public async Task<IActionResult> GetAllPizzasUsingRedisCache()
@@ -73,17 +70,21 @@ namespace CrudeApi.Controllers
             var pizzas = _context.Products.ToList();
 
             var cacheKey = "PizzaList";
+
             string serializedPizzaList;
+
             var pizzaList = new List<Pizza>();
+
             var startTime = DateTime.Now;
-            var redisCustomerList = await distributedCache.GetAsync(cacheKey);
+
+            var redisCustomerList = await _distributedCache.GetAsync(cacheKey);
 
             if (redisCustomerList != null)
             {
                 serializedPizzaList = Encoding.UTF8.GetString(redisCustomerList);
                 pizzaList = JsonConvert.DeserializeObject<List<Pizza>>(serializedPizzaList);
                 var endTime = DateTime.Now;
-                logger.Log(LogLevel.Warning, $"list with redis retrieved in {(endTime - startTime).TotalMilliseconds}");
+                _logger.Log(LogLevel.Warning, $"list with redis retrieved in {(endTime - startTime).TotalMilliseconds}");
 
             }
             else
@@ -94,9 +95,9 @@ namespace CrudeApi.Controllers
                 var options = new DistributedCacheEntryOptions()
                     .SetAbsoluteExpiration(DateTime.Now.AddSeconds(30))
                     .SetSlidingExpiration(TimeSpan.FromSeconds(10));
-                await distributedCache.SetAsync(cacheKey, redisCustomerList, options);
+                await _distributedCache.SetAsync(cacheKey, redisCustomerList, options);
                 var endTime = DateTime.Now;
-                logger.Log(LogLevel.Warning, $"list without redis retrieved in {(endTime - startTime).TotalMilliseconds}");
+                _logger.Log(LogLevel.Warning, $"list without redis retrieved in {(endTime - startTime).TotalMilliseconds}");
             }
             return Ok(serializedPizzaList);
         }
@@ -105,7 +106,7 @@ namespace CrudeApi.Controllers
         public async Task<IActionResult> GetAll()
         {
             var cacheKey = "customerList";
-            if (!memoryCache.TryGetValue(cacheKey, out List<Pizza> pizzaList))
+            if (!_memoryCache.TryGetValue(cacheKey, out List<Pizza> pizzaList))
             {
                 pizzaList = _context.Products.ToList();
                 var cacheExpiryOptions = new MemoryCacheEntryOptions
@@ -115,7 +116,7 @@ namespace CrudeApi.Controllers
                     SlidingExpiration = TimeSpan.FromSeconds(10)
 
                 };
-                memoryCache.Set(cacheKey, pizzaList, cacheExpiryOptions);
+                _memoryCache.Set(cacheKey, pizzaList, cacheExpiryOptions);
             }
             return Ok(pizzaList);
         }
@@ -205,7 +206,5 @@ namespace CrudeApi.Controllers
             }
             return Ok();
         }
-
-
     }
 }

@@ -10,7 +10,6 @@ namespace CrudeApi.Models.ShoppingCartModels
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int ItemId { get; set; }
 
-        //Foreign Key
         public int CartId { get; set; }
 
         public int Quantity { get; set; }
@@ -19,15 +18,13 @@ namespace CrudeApi.Models.ShoppingCartModels
 
         public Guid ProductId { get; set; }
 
-        public decimal Cost { get; set; }//Added cost property
+        public decimal Cost { get; set; }
 
         public virtual Pizza? Pizza { get; set; }
 
 
-        // Navigation property for the User
-        public UsersModel? UsersModel { get; set; } // navigation property
+        public UsersModel? UsersModel { get; set; }
 
-        // Collection navigation property for CartItems
         public Cart Cart { get; set; }
     }
 }
