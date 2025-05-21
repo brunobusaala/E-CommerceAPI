@@ -10,7 +10,6 @@ using System.Text;
 
 namespace CrudeApi.Controllers
 {
-
     [Route("api/token")]
     [ApiController]
     public class TokenController : ControllerBase
@@ -47,6 +46,7 @@ namespace CrudeApi.Controllers
                     };
 
                     var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+
                     var signIn = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
                     _logger.LogInformation($"User ID: {user.Id}");
                     _logger.LogInformation($"Claims: {claims.ToList()}");
@@ -58,7 +58,6 @@ namespace CrudeApi.Controllers
                         expires: DateTime.UtcNow.AddMinutes(1440),
                         signingCredentials: signIn
                     );
-
 
                     return Ok(new JwtSecurityTokenHandler().WriteToken(token));
                 }
@@ -102,20 +101,16 @@ namespace CrudeApi.Controllers
                     Email = _userData.Email,
                     DateCreated = DateTime.UtcNow,
                     DateUpdated = DateTime.UtcNow
-
-                    // Add any additional properties you have in your UsersModel
                 };
 
                 var result = await _userManager.CreateAsync(user, _userData.Password);
 
                 if (result.Succeeded)
                 {
-                    // User registration successful
                     return Ok();
                 }
                 else
                 {
-                    // Registration failed, return the errors
                     return BadRequest(result.Errors);
                 }
             }
@@ -123,10 +118,6 @@ namespace CrudeApi.Controllers
             {
                 return BadRequest();
             }
-
-
         }
-
-
     }
 }
